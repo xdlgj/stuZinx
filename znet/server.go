@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"stuZinx/ziface"
@@ -25,6 +26,18 @@ func NewServer(name string) ziface.IServer {
 	return s
 }
 
+//============== 定义当前客户端连接的handle api ========
+
+func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) error {
+	//回显业务
+	fmt.Println("[Conn Handle] CallBackToClient")
+	if _, err := conn.Write(data[:cnt]); err != nil {
+		fmt.Println("write back buf err ", err)
+		return errors.New("CallBackToClient error")
+	}
+	return nil
+}
+
 //============== 实现 ziface.IServer 里的全部接口方法 ========
 
 //Start 启动服务器方法
@@ -44,32 +57,26 @@ func (s *Server) Start() {
 			fmt.Println("listen", s.IPVersion, " error", err)
 			return
 		}
+		//已经监听成功
 		fmt.Println("start tcp server success, ", s.Name, "success listening...")
-		//3、阻塞等待客户端连接，处理客户端连接业务（读写）
+		// todo 应该有一个自动生成ID的方法
+		var cid uint32
+		cid = 0
+		//3、启动server网络连接业务
 		for {
-			// 如果有客户端连接过来，阻塞回返回
+			//3.1 阻塞等待客户端建立连接请求
 			conn, err := listener.AcceptTCP()
 			if err != nil {
 				fmt.Println("Accept err", err)
 				continue
 			}
-			// 已经与和客户端建立连接，做一些业务，做一个基本的最大512字节长度的回显业务
-			go func() {
-				for {
-					buf := make([]byte, 512)
-					cnt, err := conn.Read(buf)
-					if err != nil {
-						fmt.Println("receive buf err", err)
-						continue
-					}
-					fmt.Printf("receive client buf %s, cnt %d\n", buf, cnt)
-					// 回显功能
-					if _, err := conn.Write(buf[:cnt]); err != nil {
-						fmt.Println("write back buf error", err)
-						continue
-					}
-				}
-			}()
+			//3.2 todo Server.Start()  设置服务器最大连接控制，如果超过最大连接，那么则关闭此新的连接
+
+			//3.3 处理该连接请求的 业务方法，此时应该有handle 和conn是绑定的
+			dealConn := NewConnection(conn, cid, CallBackToClient)
+			cid ++
+			//3.4 启动当前连接的处理业务
+			go dealConn.Start()
 		}
 	}()
 }
