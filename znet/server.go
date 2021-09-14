@@ -1,7 +1,6 @@
 package znet
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"stuZinx/ziface"
@@ -13,6 +12,7 @@ type Server struct {
 	IPVersion string //tcp4 or other
 	IP        string //服务绑定的IP地址
 	Port      int    //服务绑定的端口
+	Router ziface.IRouter //当前Server由用户绑定的回调router，也就是Server注册的连接对应的处理业务
 }
 
 //NewServer 初始化Server模块
@@ -22,21 +22,11 @@ func NewServer(name string) ziface.IServer {
 		IPVersion: "tcp4",
 		IP:        "0.0.0.0",
 		Port:      8999,
+		Router: nil,
 	}
 	return s
 }
 
-//============== 定义当前客户端连接的handle api ========
-
-func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) error {
-	//回显业务
-	fmt.Println("[Conn Handle] CallBackToClient")
-	if _, err := conn.Write(data[:cnt]); err != nil {
-		fmt.Println("write back buf err ", err)
-		return errors.New("CallBackToClient error")
-	}
-	return nil
-}
 
 //============== 实现 ziface.IServer 里的全部接口方法 ========
 
@@ -73,8 +63,8 @@ func (s *Server) Start() {
 			//3.2 todo Server.Start()  设置服务器最大连接控制，如果超过最大连接，那么则关闭此新的连接
 
 			//3.3 处理该连接请求的 业务方法，此时应该有handle 和conn是绑定的
-			dealConn := NewConnection(conn, cid, CallBackToClient)
-			cid ++
+			dealConn := NewConnection(conn, cid, s.Router)
+			cid++
 			//3.4 启动当前连接的处理业务
 			go dealConn.Start()
 		}
@@ -92,4 +82,10 @@ func (s Server) Serve() {
 	// todo 做一些启动服务器之后的额外业务
 	// 阻塞，否则主go退出，listener的go将会退出
 	select {}
+}
+
+//AddRouter 给当前服务注册一个路由业务方法，供客户端连接处理使用
+func (s *Server)AddRouter(router ziface.IRouter) {
+	s.Router = router
+	fmt.Println("Add Router success! " )
 }

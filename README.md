@@ -43,3 +43,47 @@ go run demo/v0.1/client.go  // 启动客户端
 3. 当前连接的状态
 4. 与当前连接所绑定的处理业务方法
 5. 等待连接被退出的channel
+# V0.3
+## 基础router模块
+### Request请求封装
+将连接和数据绑定在一起
+#### 属性
+1. 连接 conn ziface.IConnection
+2. 请求数据 data []byte
+#### 方法
+1. 得到当前连接 GetConnection() IConnection
+2. 得到当前数据 GetData() []byte
+### Router模块
+router实际上的作用就是，服务端应用可以给Zinx框架配置当前连接的处理业务方法，之前的Zinx-V0.2我们的Zinx框架处理连接请求的方法是固定的，现在是可以自定义，并且有3种接口可以重写。
+* Handle: 处理当前连接的主业务函数
+* PreHandle: 如果需要在主业务函数之前有前置业务，可以重写这个方法
+* PostHandle: 如果需要在主业务函数之后有后置业务，可以重写这个方法
+#### 抽象的Router
+```go
+type IRouter interface {
+	PreHandle(request IRequest) // 在处理conn业务之前的钩子方法
+	Handle(request IRequest)//在处理conn业务的方法
+	PostHandle(request IRequest)//在处理conn业务之后的钩子方法
+}
+```
+#### 具体的Router
+```go
+//BaseRequest 实现router时，先嵌入这个基类，然后根据需要对这个基类的方法进行重写
+type BaseRequest struct {}
+// PreHandle 这里之所以BaseRouter的方法都为空，
+//是因为有的Router不希望有PreHandle或PostHandle
+//所以Router全部继承BaseRouter的好处是，不需要实现PreHandle和PostHandle也可以实例化
+func (br *BaseRequest) PreHandle(request ziface.IRequest)  {} // 在处理conn业务之前的钩子方法
+func (br *BaseRequest) Handle(request ziface.IRequest)     {} //在处理conn业务的方法
+func (br *BaseRequest) PostHandle(request ziface.IRequest) {} //在处理conn业务之后的钩子方法
+
+```
+### 集成router模块
+1. IServer增加路由添加功能
+2. Server类增加Router成员
+3. Connection类绑定一个Router成员
+4. 在Connection中调用已经注册的Router处理业务
+## 测试
+1. 创建一个server句柄，使用zinxapi
+2. 给当前的zinx框架添加一个自定义的router，需要继承BaseRouter，实现相应的方法
+3. 启动server
