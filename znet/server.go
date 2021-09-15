@@ -3,36 +3,40 @@ package znet
 import (
 	"fmt"
 	"net"
+	"stuZinx/utils"
 	"stuZinx/ziface"
 )
 
 //Server IServer的接口实现，定义一个Server服务器模块
 type Server struct {
-	Name      string //服务器名称
-	IPVersion string //tcp4 or other
-	IP        string //服务绑定的IP地址
-	Port      int    //服务绑定的端口
-	Router ziface.IRouter //当前Server由用户绑定的回调router，也就是Server注册的连接对应的处理业务
+	Name      string         //服务器名称
+	IPVersion string         //tcp4 or other
+	IP        string         //服务绑定的IP地址
+	Port      int            //服务绑定的端口
+	Router    ziface.IRouter //当前Server由用户绑定的回调router，也就是Server注册的连接对应的处理业务
 }
 
 //NewServer 初始化Server模块
-func NewServer(name string) ziface.IServer {
+func NewServer() ziface.IServer {
+	//先初始化全局配置文件
+	utils.GlobalObject.Reload()
+
 	s := &Server{
-		Name:      name,
+		Name:      utils.GlobalObject.Name,
 		IPVersion: "tcp4",
-		IP:        "0.0.0.0",
-		Port:      8999,
-		Router: nil,
+		IP:        utils.GlobalObject.Host,
+		Port:      utils.GlobalObject.TcpPort,
+		Router:    nil,
 	}
 	return s
 }
-
 
 //============== 实现 ziface.IServer 里的全部接口方法 ========
 
 //Start 启动服务器方法
 func (s *Server) Start() {
 	fmt.Printf("[Start] Server name: %s listener at IP: %s, Port %d, is starting\n", s.Name, s.IP, s.Port)
+	fmt.Printf("[Zinx] Version: %s, MaxConn: %d, MaxPacketSize: %d\n", utils.GlobalObject.Version, utils.GlobalObject.MaxConn, utils.GlobalObject.MaxPacketSize)
 	//开启一个协程去做服务端listener业务
 	go func() {
 		//1、获取一个tcp的addr
@@ -85,7 +89,7 @@ func (s Server) Serve() {
 }
 
 //AddRouter 给当前服务注册一个路由业务方法，供客户端连接处理使用
-func (s *Server)AddRouter(router ziface.IRouter) {
+func (s *Server) AddRouter(router ziface.IRouter) {
 	s.Router = router
-	fmt.Println("Add Router success! " )
+	fmt.Println("Add Router success! ")
 }

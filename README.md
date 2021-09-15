@@ -87,3 +87,11 @@ func (br *BaseRequest) PostHandle(request ziface.IRequest) {} //在处理conn业
 1. 创建一个server句柄，使用zinxapi
 2. 给当前的zinx框架添加一个自定义的router，需要继承BaseRouter，实现相应的方法
 3. 启动server
+# V0.4
+添加全局配置
+1. 服务器应用/conf/zinx.json(用户进行填写)
+2. 创建一个Zinx的去全局配置模块utils/globalobj.go
+   1. 读取用户配置好的zinx.json文件 --->globalobj对象中
+   2. 提供一个全局的GlobalObject对象
+3. 将zinx框架中全部的硬代码，用globalobj里面的参数进行替换
+4. 使用zinxv0.4开发
