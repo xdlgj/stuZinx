@@ -9,7 +9,7 @@ type IConnection interface {
 	GetTCPConnection() *net.TCPConn //从当前连接获取原始的socket TCPConn
 	GetConnID() uint32              //获取当前连接ID
 	RemoteAddr() net.Addr           //获取远程客户端地址信息
-	Send(data []byte) error         //发送数据，将数据发送给远程客户端
+	SendMsg(msgId uint32, data []byte) error         //发送数据，将数据发送给远程客户端
 }
 
 // HandFunc 这个是所有conn链接在处理业务的函数接口，
