@@ -140,3 +140,24 @@ func (br *BaseRequest) PostHandle(request ziface.IRequest) {} //在处理conn业
 2. 添加一个Writer Goroutine
 3. Reader由之前直接发送给客户端 改成发送给通信Channel
 4. 启动Reader和Writer一同工作
+# V0.8
+## 消息队列及worker工作池实现
+### 创建一个消息队列
+#### MsgHandler消息管理模块，增加属性
+1. 消息队列
+2. worker工作池的数量
+### 创建多任务worker的工作池并启动
+1. 创建一个worker工作池
+   1. 根据workerPoolSize的数量去创建worker
+   2. 每个worker都应该用go去承载
+      1. 阻塞等待与当前worker对应的channel的消息
+      2. 一旦有消息到来，worker应该处理当前消息对应的业务，调用MsgHandler
+### 修改之前的发送消息，全部改成 把消息发送给消息队列和worker工作池来处理
+1. 定义一个方法，将消息发送给消息队列工作池的方法
+   1. 保证每个worker所收到的任务是均衡的，让哪个worker处理就将消息发送给对应的taskQueue即可
+   2. 将消息发送到对应的channel
+## 将消息队列机制集成到zinx框架中
+### 开启并调用消息队列及工作池
+1. 保证工作池只有一个，需要在启动服务的时候开启
+### 将从客户端处理的消息，发送给当前的worker来处理
+1. 在已经处理完拆包，得到request请求交给工作池来处理
