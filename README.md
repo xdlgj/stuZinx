@@ -135,3 +135,8 @@ func (br *BaseRequest) PostHandle(request ziface.IRequest) {} //在处理conn业
 3. 将connection模块Router属性 替换成MsgHandler，修改初始化Connection方法
 4. 修改Connection的之前调度Router的业务 替换换成MsgHandler调度，修改StartReader方法
 ## 使用zinx v0.6开发
+# V0.7
+1. 添加一个Reader和Writer之间通信的channel
+2. 添加一个Writer Goroutine
+3. Reader由之前直接发送给客户端 改成发送给通信Channel
+4. 启动Reader和Writer一同工作
