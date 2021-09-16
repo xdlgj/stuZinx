@@ -121,3 +121,17 @@ func (br *BaseRequest) PostHandle(request ziface.IRequest) {} //在处理conn业
 2. 修改连接读取数据的方式
 3. 给连接提供一个发包机制
 ## 使用zinx v0.5开发
+# V0.6
+我们之前在已经给Zinx配置了路由模式，但是很惨，之前的Zinx好像只能绑定一个路由的处理业务方法。显然这是无法满足基本的服务器需求的，那么现在我们要在之前的基础上，给Zinx添加多路由的方式。
+## 消息管理模块(支持多路由业务api调度管理)
+### 属性
+1. 集合-消息ID对应的router的关系map
+### 方法
+1. 根据msgID来索引调度路由方法 DoMsgHandler()
+2. 添加路由方法到map集合中 AddRouter()
+## 将消息管理模块集成到zinx框架中
+1. 将server模块中的Router属性 替换成MsgHandler属性
+2. 将server之前的AddRouter修改 调用MsgHandler的AddRouter
+3. 将connection模块Router属性 替换成MsgHandler，修改初始化Connection方法
+4. 修改Connection的之前调度Router的业务 替换换成MsgHandler调度，修改StartReader方法
+## 使用zinx v0.6开发

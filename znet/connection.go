@@ -9,20 +9,20 @@ import (
 )
 
 type Connection struct {
-	Conn         *net.TCPConn   //当前连接的socket TCP套接字
-	ConnID       uint32         //当前连接的ID 也可以称作为SessionID，ID全局唯一
-	isClosed     bool           //当前连接的关闭状态
-	Router       ziface.IRouter //当前连接的业务处理方法
-	ExitBuffChan chan bool      //告知该连接已经提出/停止的channel
+	Conn         *net.TCPConn      //当前连接的socket TCP套接字
+	ConnID       uint32            //当前连接的ID 也可以称作为SessionID，ID全局唯一
+	isClosed     bool              //当前连接的关闭状态
+	MsgHandler   ziface.IMsgHandle //消息管理MsgId和对应处理方法的消息管理模块
+	ExitBuffChan chan bool         //告知该连接已经提出/停止的channel
 }
 
 //NewConnection 创建连接的方法
-func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandle) *Connection {
 	c := &Connection{
 		Conn:         conn,
 		ConnID:       connID,
 		isClosed:     false,
-		Router:       router,
+		MsgHandler:   msgHandler,
 		ExitBuffChan: make(chan bool, 1),
 	}
 	return c
@@ -76,13 +76,8 @@ func (c *Connection) StartReader() {
 			conn: c,
 			data: msg,
 		}
-		//从路由Router中找到注册绑定Conn的对应Handle
-		go func(request ziface.IRequest) {
-			//执行注册的路由方法
-			c.Router.PreHandle(request)
-			c.Router.Handle(request)
-			c.Router.PostHandle(request)
-		}(&req)
+		//从绑定好的消息和对应的处理方法中执行对应的Handle方法
+		go c.MsgHandler.DoMsgHandler(&req)
 
 	}
 }
@@ -133,7 +128,7 @@ func (c *Connection) RemoteAddr() net.Addr {
 }
 
 func (c *Connection) SendMsg(msgId uint32, data []byte) error {
-	if c.isClosed{
+	if c.isClosed {
 		return errors.New("connection closed when send msg")
 	}
 	//将data封包，并且发送
@@ -141,7 +136,7 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	msg, err := dp.Pack(NewMsgPackage(msgId, data))
 	if err != nil {
 		fmt.Println("Pack error msg id = ", msgId)
-		return  errors.New("Pack error msg ")
+		return errors.New("Pack error msg ")
 	}
 	//写回客户端
 	if _, err := c.Conn.Write(msg); err != nil {
